@@ -1,3 +1,5 @@
+import sys
+import os
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -6,6 +8,25 @@ import matplotlib.pyplot as plt
 matplotlib.use('Agg')
 
 from pywfm import IWFMBudget
+
+def read_filename_from_commandline(args):
+    """ Read the budget hdf file name from the commandline
+    """
+    if len(args) == 1:
+        input("Provide name of budget HDF file: ")
+    
+    elif len(args) > 2:
+        raise ValueError("Too many values provided on command line")
+
+    else:
+        file_name = args[1]
+        if not os.path.exists(file_name):
+            raise FileNotFoundError("File provided {} was not found".format(file_name))
+        
+        if not file_name.endswith('hdf'):
+            raise ValueError("Budget files must be HDF format")
+
+        return file_name
 
 def date_to_water_year(month, year):
     if month > 9:
@@ -16,11 +37,14 @@ def date_to_water_year(month, year):
 if __name__ == '__main__':
 
 
-    lwu_budget_file = '../Results/C2VSimFG_L&WU_Budget.hdf'
+    lwu_budget_file = read_filename_from_commandline(sys.argv)
     
     with IWFMBudget(lwu_budget_file) as bud:
         locations = bud.get_location_names()
         for i, l in enumerate(locations, start=1):
+            
+            print("Plotting L&WU Budget for {}".format(l))
+            
             df = bud.get_values(
                 i,
                 area_conversion_factor=1/43560,
@@ -83,7 +107,7 @@ if __name__ == '__main__':
             
             ax1.set_ylabel('Annual Volume (AF)')
             ax1.set_xlabel('Water Year')
-            ax1.set_title("Agricultural Land and Water Use Budget\nfor Subregion {}".format(10))
+            ax1.set_title("Agricultural Land and Water Use Budget\nfor Subregion {}".format(i))
             
             ax3.bar(
                 x - width/2, 
@@ -125,7 +149,9 @@ if __name__ == '__main__':
             
             ax3.set_ylabel('Annual Volume (AF)')
             ax3.set_xlabel('Water Year')
-            ax3.set_title('Urban Land and Water Use Budget\nfor Subregion {}'.format(10))
-            plt.savefig('SR{}_LWU_alt.png'.format(l))
+            ax3.set_title('Urban Land and Water Use Budget\nfor Subregion {}'.format(i))
+            plt.savefig('{}_LWU_Budget.png'.format(l))
             plt.close()
+
+    print("Processing Complete!")
             
